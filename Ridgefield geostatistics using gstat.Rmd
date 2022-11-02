@@ -1,5 +1,5 @@
 ---
-title: "Ridgefield to 2019 spatial analyses"
+title: "Ridgefield to 2018 A horizon spatial analyses"
 output: 
   bookdown::html_document2:
     fig_width: 6.4
@@ -98,14 +98,14 @@ data_temp <- na.omit(rf18a[,c("Easting", "Northing", var0)])
 Coords <- cbind(data_temp$Easting, data_temp$Northing)
 bw <- 8 # bw = bandwidth, = number of nearest point for calculation
 mI <- moransI(Coords, bw, data_temp[,3])
-cat("Global Moran's I for ",var0,"; from the NGSA (af only), topsoil, -2mm fraction\n", sep="");
+cat("Global Moran's I for ",var0," from Ridgefield A horizon\n", sep="");
 t(as.matrix(mI[c(2,4:7)]))
 rm(list = c("data_temp","Coords","bw","mI","var0")) # remove temporary objects
 ```
 
 ### ├ Plot local Moran's I
 
-```{r local-Moran, message=FALSE, warning=FALSE, fig.height=7.15, fig.width=10, fig.align='center', out.width="80%", fig.cap="Map of Local Moran's I for TOC concentrations in Ridgefield soils. The Global Moran's I parameter is also shown beneath the legend.", results='hide'}
+```{r local-Moran, message=FALSE, warning=FALSE, fig.height=7.15, fig.width=10, fig.align='center', out.width="80%", fig.cap="Map of Local Moran's I for TOC concentrations in Ridgefield A horizon soils. The Global Moran's I parameter is also shown beneath the legend.", results='hide'}
 palette("default");palette(c(palette(),"gray92","white","transparent"))
 var0 <- "C.pct" # choose the variable of interest
 data_temp <- na.omit(rf18a[,c("Easting", "Northing", var0)])
@@ -152,7 +152,7 @@ text(0.5, 0.815, col = 10, cex = 1.2,
 
 ### ├ Plot 'LISA'
 
-```{r lisa-plot, message=FALSE, warning=FALSE, fig.height=7.15, fig.width=10, fig.align='center', out.width="80%", fig.cap="Map of LISA for C.pct concentrations in the Ridgefield soil data.", results='hide',echo=FALSE}
+```{r lisa-plot, message=FALSE, warning=FALSE, fig.height=7.15, fig.width=10, fig.align='center', out.width="80%", fig.cap="Map of LISA for C.pct concentrations in the Ridgefield A horizon soil data.", results='hide',echo=FALSE}
 data_temp <- na.omit(as.data.frame(cbind(rf18a$Easting,rf18a$Northing,
                                          rf18a$C.pct)))
 colnames(data_temp) <- c("Easting","Northing","C.pct")
@@ -210,7 +210,7 @@ legend("top", bty = "o", inset = 0.015, cex = 1.5, ncol = 1,
 
 ### ├ LISA maps for multiple variables
 
-```{r multi-LISA, fig.height=10, fig.width=7.8, fig.align='center', fig.cap="LISA autocorrelation maps for C.pct, Al, Fe, S, As, Cu, Pb, and Zn concentrations in the Ridgefield soil data, 2019-2022.", message=FALSE, warning=FALSE, echo=FALSE}
+```{r multi-LISA, fig.height=10, fig.width=7.8, fig.align='center', fig.cap="LISA autocorrelation maps for C.pct, Al, Fe, S, As, Cu, Pb, and Zn concentrations in the Ridgefield A horizon soil data.", message=FALSE, warning=FALSE, echo=FALSE}
 par(mfrow=c(3,2), mar=c(0,0,0,0), oma=c(3,3,0.5,0.5), mgp=c(1.6,0.2,0), 
     tcl=0.3,lend="square", ljoin="mitre")
 palette(c("black","#FF8080","#8080FF","orange","skyblue",
@@ -308,14 +308,14 @@ To quickly check our data, we use the function `bubble()` from the
 `sp` package to make a *bubble map* of our variable, where the symbol *area* is
 proportional to the variable value (in this case, soil TOC concentration).
 
-```{r spplot-spdf, fig.height=5, fig.width=8, fig.align='center', out.width="80%", fig.cap="Visualization of spatial point data object for log10-transformed C.pct concentrations in Ridgefield soils 2019-2022.", message=FALSE, warning=FALSE, results='hold'}
+```{r spplot-spdf, fig.height=5, fig.width=8, fig.align='center', out.width="80%", fig.cap="Visualization of spatial point data object for log10-transformed C.pct concentrations in Ridgefield A horizon soil.", message=FALSE, warning=FALSE, results='hold'}
 bubble(C.pct_sp, col=c("#ff000088", "#0000ff88"), main = "", 
        scales = list(draw = TRUE), xlab = "Easting", ylab = "Northing")
 ```
 
 ### ├ Plot a map with range-class symbols
 
-```{r TOC-tukey-plot, echo=2:19, fig.width=8, fig.height=7.05, fig.align='center', fig.cap="Map of C.pct concentrations expressed as symbols for concentration ranges (UQR is 75th percentile, upWsk is upper whisker, med is median, LQR is 25th percentile, loWsk is lower whisker). Data are from Ridgefield soils 2019-2022.", out.width="80%", message=FALSE, warning=FALSE,echo=FALSE}
+```{r TOC-tukey-plot, echo=2:19, fig.width=8, fig.height=7.05, fig.align='center', fig.cap="Map of C.pct concentrations expressed as symbols for concentration ranges (UQR is 75th percentile, upWsk is upper whisker, med is median, LQR is 25th percentile, loWsk is lower whisker). Data are from Ridgefield A horizon soils.", out.width="80%", message=FALSE, warning=FALSE,echo=FALSE}
 palette(c("black",rev(c("#EE0000C0", "#EE7621C0", "#EEC900C0", "#40E0D0C0", 
                         "#4870F0C0", "#9932CCC0")),"grey60","grey92", "white"))
 par(oma=c(4,4,1.5,1.5), mgp=c(1.4,0.3,0), lend=2, ljoin=1, tcl=0.3)
@@ -362,7 +362,7 @@ knitr::kable(tukbins)
 
 ### ├ Make a binned simple variogram object
 
-```{r make-variog-obj, message=FALSE, warning=FALSE, fig.align='center', fig.cap="Plot of experimental binned variogram for C.pct in Ridgefield soils 2019-2022.", fig.height=3.5, fig.width=4.5, out.width="50%"}
+```{r make-variog-obj, message=FALSE, warning=FALSE, fig.align='center', fig.cap="Plot of experimental binned variogram for C.pct in Ridgefield A horizon soils.", fig.height=3.5, fig.width=4.5, out.width="50%"}
 data0 <- na.omit(rf18a[,c("Easting","Northing","Gravel.pct")])
 data0 <- data0[-which(data0$Gravel.pct<1e-4),] # find and remove zeros
 data0[,3] <- log10(data0[,3])
@@ -400,7 +400,7 @@ vmodel_Gravel.pct <- fit.variogram(variog_Gravel.pct,
 vmodel_Gravel.pct
 ```
 
-```{r plot-exp-model-variograms, fig.height=3.6, fig.width=5, fig.align='center', fig.cap="Plot of experimental binned variogram, and exponential variogram model, for Gravel.pct in Ridgefield soils 2019-2022.", out.width="50%", results='hide', echo=FALSE}
+```{r plot-exp-model-variograms, fig.height=3.6, fig.width=5, fig.align='center', fig.cap="Plot of experimental binned variogram, and exponential variogram model, for Gravel.pct in Ridgefield A horizon soils.", out.width="50%", results='hide', echo=FALSE}
 par(mar = c(4,4,1,1), mgp = c(1.7,0.3,0), tcl=0.25, font.lab=2)
 with(variog_Gravel.pct, plot(dist, gamma, ylim = c(0, max(gamma)), cex.lab=1.2, 
                    lwd=2, xlab = "Distance (m)", 
@@ -432,25 +432,25 @@ grid0 <- expand.grid(seq(round(min(Gravel.pct_sp@coords[,1]),1),
                             round(max(Gravel.pct_sp@coords[,1]),1), 10),
                         seq(round(min(Gravel.pct_sp@coords[,2]),1), 
                             round(max(Gravel.pct_sp@coords[,2]),1), 10))
-afgrid <- SpatialPoints(grid0, proj4string = UTM50)
+rfgrid <- SpatialPoints(grid0, proj4string = UTM50)
 
 irregpoly <- Polygon(rf_boundary[,c(1,2)], hole=F)
 irregPolys = Polygons(list(irregpoly),1)
 gridMask = SpatialPolygons(list(irregPolys), 
                            proj4string = UTM50)
-inOrOut <- as.vector(over(afgrid, gridMask))
-afgrid <- afgrid[which(inOrOut>0)]
-cat("Prediction grid:\n"); summary(afgrid)
+inOrOut <- as.vector(over(rfgrid, gridMask))
+rfgrid <- rfgrid[which(inOrOut>0)]
+cat("Prediction grid:\n"); summary(rfgrid)
 ```
 
 ### ├ Krige to grid
 ```{r krige-to-grid, results='hold'}
 kriged_Gravel.pct <- krige(formula = Gravel.pct~1, locations = Gravel.pct_sp, 
-                      newdata = afgrid, model = vmodel_Gravel.pct)
+                      newdata = rfgrid, model = vmodel_Gravel.pct)
 summary(kriged_Gravel.pct)
 cat("_____________________________________________________________________\n\n")
 idw_Gravel.pct <- idw(formula = Gravel.pct~1, locations = Gravel.pct_sp, 
-                      newdata = afgrid, idp = 2)
+                      newdata = rfgrid, idp = 2)
 idw_Gravel.pct@data$var1.var <- NULL
 summary(idw_Gravel.pct)
 ```
@@ -460,7 +460,7 @@ summary(idw_Gravel.pct)
 We can then us the spplot() function from sp to visualise the 
 kriging predictions and variance, but without a background map.
 
-```{r spplot-kriging-output, fig.width=8, fig.height=5.85, fig.align='center', echo=2, fig.cap="Plots of simple kriging predictions and variance for log-transformed Gravel.pct in Ridgefield soils 2019-2022.", out.width="75%", warning=FALSE, error=FALSE, results='hold'}
+```{r spplot-kriging-output, fig.width=8, fig.height=5.85, fig.align='center', echo=2, fig.cap="Plots of simple kriging predictions and variance for log-transformed Gravel.pct in Ridgefield A horizon soils.", out.width="75%", warning=FALSE, error=FALSE, results='hold'}
 par(oma=c(0,0,0,0))
 spplot(kriged_Gravel.pct, colorkey=T, pch=15, # with kriging variances
     names.attr = c("log10[Gravel.pct] kriging predictions",
@@ -471,7 +471,7 @@ spplot(kriged_Gravel.pct, colorkey=T, pch=15, # with kriging variances
 
 ### ├ Plot a map with overlay of the kriging predictions & kriging variance
 
-```{r map-krig-mod-pred, fig.height=12.8, fig.width=7.8, fig.align='center', fig.cap="Map showing (a) predictions and (b) variance for kriging model of Gravel.pct in Ridgefield soils. Sample points are tiny dots.", message=FALSE, warning=FALSE}
+```{r map-krig-mod-pred, fig.height=12.8, fig.width=7.8, fig.align='center', fig.cap="Map showing (a) predictions and (b) variance for kriging model of Gravel.pct in Ridgefield A horizon soils. Sample points are tiny dots.", message=FALSE, warning=FALSE}
 par(mfrow=c(2,1), oma=c(4,4,1.5,1.5), mgp=c(1.4,0.3,0), lend=2, ljoin=1, tcl=0.3)
 plot(rftiles)
 axis(1, mgp=c(2, 0.3, 0), labels=F)
@@ -483,7 +483,7 @@ mtext(side=2, line=1.5, text="Northing (UTM Zone 50, m)",
 axtx <- c(1,2,3,5,10,20,30,50,100,200,300,500,1000)
 colgrad <- gsub("FF","98", viridis::mako(128)[round(seq(1, 128, l=6),0)])
 rect(494500, 6402250, 501000, 6403000, col="#FFFFFF80", border=NA)
-quilt.plot(afgrid@coords[,1], afgrid@coords[,2],kriged_Gravel.pct@data[,1],
+quilt.plot(rfgrid@coords[,1], rfgrid@coords[,2],kriged_Gravel.pct@data[,1],
            add = T, horizontal=T, 
            col = colorRampPalette(colgrad, alpha = TRUE)(64),
            legend.lab = expression(bold("Kriging prediction of Gravel.pct (mg/kg)")), 
@@ -504,7 +504,7 @@ mtext(side=2, line=1.5, text="Northing (UTM Zone 50, m)",
 axtx <- seq(0,0.14,0.02)
 colgrad <- gsub("FF","80", viridis::turbo(128)[round(seq(1, 128, l=6),0)])
 rect(494500, 6402250, 501000, 6403000, col="#FFFFFF80", border=NA)
-quilt.plot(afgrid@coords[,1], afgrid@coords[,2],kriged_Gravel.pct@data[,2],
+quilt.plot(rfgrid@coords[,1], rfgrid@coords[,2],kriged_Gravel.pct@data[,2],
            add = T, horizontal=T, 
            col = colorRampPalette(colgrad, alpha = TRUE)(64),
            legend.lab = expression(bold("Kriging variance in Gravel.pct (mg/kg)")), 
