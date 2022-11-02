@@ -3,3 +3,11 @@
 .RData
 
 ridgefield-2022.Rproj
+
+*.html
+
+*.docx
+
+*.tmp
+
+/Ridgefield-geostatistics-using-gstat_files/*
