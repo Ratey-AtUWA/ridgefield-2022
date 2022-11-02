@@ -1,0 +1,510 @@
+---
+title: "Ridgefield to 2019 spatial analyses"
+output: 
+  bookdown::html_document2:
+    fig_width: 6.4
+    fig_height: 4.8
+    number_sections: no
+    self_contained: no
+    df_print: default
+    fig_caption: yes
+    smart: no
+---
+
+```{r load packages and environment but do not show, message=FALSE, warning=FALSE, echo=FALSE, include=FALSE}
+library(sp)
+library(lctools)
+library(gstat)
+library(sf)
+library(maptiles)
+library(prettymapr)
+library(fields)
+library(viridis)
+library(ncf)
+library(flextable)
+  set_flextable_defaults(font.family = 'sans', theme_fun = "theme_zebra", 
+        font.size = 11, text.align = "right",padding.left = 1, padding.right = 1,
+        padding.top = 2, padding.bottom = 2)
+```
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+git <- "https://github.com/Ratey-AtUWA/ridgefield-2022/raw/main/"
+```
+
+```{r importing the data, message=FALSE, warning=FALSE, results='hold', echo=FALSE}
+rf18a <- read.csv(paste0(git,"rf2018A.csv"), stringsAsFactors = TRUE)
+rf18a$Year <- as.factor(rf18a$Year)
+rf_border <- read.csv(paste0(git,"rf_hull.csv"))
+rf18a <- droplevels(rf18a[-which(rf18a$Depth_upper_cm > 1 & 
+                                           rf18a$Type=="Soil"),])
+```
+
+# Making our base map of Ridgefield 
+
+```{r define CRS, warning=FALSE, error=FALSE, results='hold', echo=FALSE}
+LongLat <- CRS("+proj=longlat +ellps=WGS84 
+           +datum=WGS84 +no_defs") # uses Earth ellipsis specs from WGS84 datum
+UTM50 <- CRS("+proj=utm +zone=50 +south") # just for Zone 50, S hemisphere!
+```
+
+### ├ Map extent object
+
+```{r make map extent object, warning=FALSE, error=FALSE, results='hold', echo=FALSE}
+extent <- st_as_sf(x = data.frame(x = c(116.94,117.01), 
+                                  y = c(-32.515,-32.465)), 
+                   coords = c("x", "y"), crs = LongLat)
+st_coordinates(extent)
+extent_UTM <- st_transform(extent, crs=UTM50)
+st_coordinates(extent_UTM)
+```
+
+### ├ Getting and plotting the map tile data
+
+```{r basemap, fig.height=7.05, fig.width=8, fig.align='center', fig.cap="Map of Ridgefield Farm and adjacent area (UTM projection, Zone 50S, EPSG:32750) used subsequently as the base map for spatial analyses. Generated using the maptiles R package, with ESRI WorldTopoMap tiles.", out.width="75%", warning=FALSE, message=FALSE, results='hide', echo=FALSE}
+rftiles <- get_tiles(extent_UTM, provider = "Esri.WorldImagery", 
+                     crop = TRUE, zoom = 13) # make map object
+
+par(oma=c(3,3,1,1), mar=c(4,4,1.5,1.5), mgp=c(1.4,0.3,0), 
+    lend=2, ljoin=1, tcl=0.3)
+plot(rftiles)
+axis(1)
+mtext(side=1, line=2, text="Easting (UTM Zone 50, m)",
+      font=2, cex=1.2)
+axis(2)
+mtext(side=2, line=2, text="Northing (UTM Zone 50, m)",
+      font=2, cex=1.2)
+with(rf18a, points(Easting, Northing, pch = 3, cex = 0.75, col = "gold"))
+# with(rf_border, lines(Easting,Northing, lty = 3, col = "darkgreen"))
+polygon(rf_boundary,lty=c("12"),lwd=2,border="#FFFFFFC0")
+addnortharrow(pos="topright", border=1, lwd=1, text.col=10,  
+              padin=c(0.1,0.2), scale=1.2)
+addscalebar(plotepsg = 32750, linecol = "white", label.col = "white",
+            widthhint = 0.3, htin = 0.15, label.cex = 1.3)
+box()
+```
+
+## Spatial Autocorrelation
+
+### ├ Calculate Global Moran's I
+
+```{r global Moran, echo=TRUE, message=FALSE, warning=FALSE, results='hold', echo=FALSE}
+var0 <- "C.pct" # choose the variable of interest
+
+# Calculate global Moran's I
+data_temp <- na.omit(rf18a[,c("Easting", "Northing", var0)])
+Coords <- cbind(data_temp$Easting, data_temp$Northing)
+bw <- 8 # bw = bandwidth, = number of nearest point for calculation
+mI <- moransI(Coords, bw, data_temp[,3])
+cat("Global Moran's I for ",var0,"; from the NGSA (af only), topsoil, -2mm fraction\n", sep="");
+t(as.matrix(mI[c(2,4:7)]))
+rm(list = c("data_temp","Coords","bw","mI","var0")) # remove temporary objects
+```
+
+### ├ Plot local Moran's I
+
+```{r local-Moran, message=FALSE, warning=FALSE, fig.height=7.15, fig.width=10, fig.align='center', out.width="80%", fig.cap="Map of Local Moran's I for TOC concentrations in Ridgefield soils. The Global Moran's I parameter is also shown beneath the legend.", results='hide', echo=FALSE}
+palette("default");palette(c(palette(),"gray92","white","transparent"))
+var0 <- "C.pct" # choose the variable of interest
+data_temp <- na.omit(rf18a[,c("Easting", "Northing", var0)])
+Coords <- cbind(data_temp$Easting, data_temp$Northing)
+mI <- moransI(Coords, 8, data_temp[,3]) # log10 minimises skewness
+local_moran <- l.moransI(Coords, 8, data_temp[,3], scatter.plot = FALSE)
+plotdata <- data.frame(Easting=Coords[,1], Northing=Coords[,2], 
+                       MoranI=local_moran$Ii, p_value=local_moran$p.value)
+pos0 <- subset(plotdata, plotdata$MoranI>0 & plotdata$p_value<=0.05)
+neg0 <- subset(plotdata, plotdata$MoranI<0 & plotdata$p_value<=0.05)
+#
+par(oma=c(3,3,1,1), mar=c(4,4,1.5,1.5), mgp=c(1.4,0.2,0), 
+    lend=2, ljoin=1, tcl=0.3, lwd = 1)
+layout(matrix(c(1,1,1,1,2),nrow = 1))
+plot(rftiles)
+axis(1)
+mtext(side=1, line=1.7, text="Easting (UTM Zone 50, m)",
+      font=2, cex=1.2)
+axis(2)
+mtext(side=2, line=1.7, text="Northing (UTM Zone 50, m)",
+      font=2, cex=1.2)
+addnortharrow(pos="topright", border=1, lwd=1, text.col=10,  
+              padin=c(0.1,0.2), scale=1.2)
+addscalebar(plotepsg = 32750, linecol = "white", label.col = "white",
+            widthhint = 0.3, htin = 0.15, label.cex = 1.3)
+box()
+points(Coords, pch=3, cex=0.5, col = "lemonchiffon")
+with(pos0, symbols(Easting, Northing, circles = 250*sqrt(MoranI*0.02), lwd=2, 
+                   inches = F, fg = "cyan", bg = "#00808080", add= TRUE))
+with(neg0, symbols(Easting, Northing, squares = 250*sqrt(MoranI*-0.04), lwd=2, 
+                   inches = F, fg = "plum2", bg = "#c0404080", add= TRUE))
+plot(c(0,1),c(0,1),type="n",bty="n",axes=F)
+legend("top", bty = "o", cex = 1.5, title.cex = 1.5,
+       legend = c("Positive I", "Negative I",NA, NA,NA,NA),
+       title = paste0(" Local Moran's I for \n",var0, 
+                      " in rf18a data \n(p \u2264 0.05 only)"),
+       pch = c(21, 22,NA,NA,NA), pt.cex = c(3, 2.5,NA,NA,NA,NA),
+       col = c("cyan", "plum2"), pt.bg = c("#00808080", "#C0404080"),
+       text.col = "white", title.col = "pink", y.intersp = 0.9, bg="#384838")
+text(0.5, 0.815, col = 10, cex = 1.2, 
+     labels = paste("Global Moran's I:\n", signif(as.numeric(mI[2]),3),
+                           "\nRandomization p:\n", signif(as.numeric(mI[7]),3)))
+```
+
+### ├ Plot 'LISA'
+
+```{r lisa-plot, message=FALSE, warning=FALSE, fig.height=7.15, fig.width=10, fig.align='center', out.width="80%", fig.cap="Map of LISA for C.pct concentrations in the Ridgefield soil data.", results='hide',echo=FALSE}
+data_temp <- na.omit(as.data.frame(cbind(rf18a$Easting,rf18a$Northing,
+                                         rf18a$C.pct)))
+colnames(data_temp) <- c("Easting","Northing","C.pct")
+
+
+Coords <- cbind(data_temp$Easting, data_temp$Northing)
+bw <- 8
+locMI <- l.moransI(Coords,bw,data_temp$C.pct, scatter.plot = F)
+LISA <- as.data.frame(cbind(Coords[,1:2], log10(data_temp$C.pct), 
+                            locMI$Ii, 
+                            locMI$p.value))
+colnames(LISA) <- c("Easting", "Northing", "C.pct", "MoranI", "p_value") # ;head(LISA)
+medC.pct <- median(LISA$C.pct, na.rm = TRUE)
+HiHi <- subset(LISA, LISA$p_value<=0.05&LISA$MoranI>0&LISA$C.pct>=medC.pct)
+LoLo <- subset(LISA, LISA$p_value<=0.05&LISA$MoranI>0&LISA$C.pct<medC.pct)
+HiLo <- subset(LISA, LISA$p_value<=0.05&LISA$MoranI<0&LISA$C.pct>=medC.pct)
+LoHi <- subset(LISA, LISA$p_value<=0.05&LISA$MoranI<0&LISA$C.pct<medC.pct)
+#
+par(oma=c(3,3,1,1), mar=c(4,4,1.5,1.5), mgp=c(1.4,0.2,0), 
+    lend=2, ljoin=1, tcl=0.3, lwd = 1)
+layout(matrix(c(1,1,1,1,2),nrow = 1))
+palette(c("black","#FF8080","#8080FF","orange","skyblue",
+          "#B00000","#0000B0","#FFA50040","#87CEEB40","white"))
+plot(rftiles)
+axis(1)
+mtext(side=1, line=1.6, text="Easting (UTM Zone 50, m)",
+      font=2, cex=1.2)
+axis(2)
+mtext(side=2, line=1.6, text="Northing (UTM Zone 50, m)",
+      font=2, cex=1.2)
+addnortharrow(pos="topright", border=1, lwd=1, text.col=10,  
+              padin=c(0.1,0.2), scale=1.2)
+addscalebar(plotepsg = 32750, linecol = "white", label.col = "white",
+            widthhint = 0.3, htin = 0.15, label.cex = 1.5)
+box()
+with(data_temp, points(Easting, Northing, pch=3, cex = 1, col="lemonchiffon"))
+with(HiHi, points(Northing ~ Easting, pch = 22,
+                  col = 2, bg = 6, lwd = 2, cex = 2.7))
+with(LoLo, points(Northing ~ Easting, pch = 21, 
+                  col = 3, bg = 7, lwd = 2, cex = 3))
+with(HiLo, points(Northing ~ Easting, pch = 25,  
+                  col = 2, bg = 7, lwd = 2, cex = 2.4))
+with(LoHi, points(Northing ~ Easting, pch = 24,
+                  col = 3, bg = 6, lwd = 2, cex = 2.4))
+plot(c(0,1),c(0,1),type="n",bty="n",axes=F)
+legend("top", bty = "o", inset = 0.015, cex = 1.5, ncol = 1,
+       legend = c("High-High", "Low-Low","High-Low","Low-High","Sample points"),
+       pch = c(22, 21, 25,24,3), pt.cex = c(2.7,3,2.4,2.4,1), 
+       pt.lwd = c(2,2,2,2,1),
+       col = c(2,3,2,3,"lemonchiffon"), pt.bg = c(6,7,7,6,NA), 
+       box.col = "#b0b0b0", box.lwd = 1.3, bg = "#384838", 
+       title="\nSpatial\nautocorrelation\nclasses\nfor C.pct",
+       title.col = "lemonchiffon", text.col=10, y.intersp = 1.1)
+```
+
+### ├ LISA maps for multiple variables
+
+```{r multi-LISA, fig.height=10, fig.width=7.8, fig.align='center', fig.cap="LISA autocorrelation maps for C.pct, Al, Fe, S, As, Cu, Pb, and Zn concentrations in the Ridgefield soil data, 2019-2022.", message=FALSE, warning=FALSE, echo=FALSE}
+par(mfrow=c(3,2), mar=c(0,0,0,0), oma=c(3,3,0.5,0.5), mgp=c(1.6,0.2,0), 
+    tcl=0.3,lend="square", ljoin="mitre")
+palette(c("black","#FF8080","#8080FF","orange","skyblue",
+          "#B00000","#0000B0","#FFA50040","#87CEEB40","white"))
+varz <- c("Gravel.pct","C.N.ratio","pH.CaCl2","EC","CEC","Na_ex")
+for (i in 1:length(varz)){
+  data_temp <- na.omit(as.data.frame(cbind(rf18a$Easting,rf18a$Northing,
+                                         rf18a[,varz[i]])))
+  colnames(data_temp) <- c("Easting","Northing",varz[i])
+
+  Coords <- cbind(data_temp$Easting, data_temp$Northing)
+  bw <- 8
+  locMI <- l.moransI(Coords,bw,data_temp[,varz[i]], scatter.plot = F)
+  LISA <- as.data.frame(cbind(Coords[,1:2], log10(data_temp[,varz[i]]), 
+                            locMI$Ii, 
+                            locMI$p.value))
+  colnames(LISA) <- c("Easting", "Northing", var0, "MoranI", "p_value")
+  medC.pct <- median(LISA[,var0], na.rm = TRUE)
+  HiHi <- subset(LISA, LISA$p_value<=0.05&LISA$MoranI>0&LISA[,var0]>=medC.pct)
+  LoLo <- subset(LISA, LISA$p_value<=0.05&LISA$MoranI>0&LISA[,var0]<medC.pct)
+  HiLo <- subset(LISA, LISA$p_value<=0.05&LISA$MoranI<0&LISA[,var0]>=medC.pct)
+  LoHi <- subset(LISA, LISA$p_value<=0.05&LISA$MoranI<0&LISA[,var0]<medC.pct)
+
+  plot(rftiles)
+  axis(1, labels=F,col=10); axis(2, labels = F, col=10)
+  if(i > 4.5) {
+    axis(1)
+    mtext(side=1, line=1.6, text="Easting (UTM Zone 50, m)", font=2, cex=1)
+    }
+  if(round(i/2,0) != (i/2)) {
+    axis(2)
+    mtext(side=2, line=1.6, text="Northing (UTM Zone 50, m)", font=2, cex=1)
+  }
+  addnortharrow(pos="topleft", border=1, lwd=1, text.col=10,  
+              padin=c(0.05,0.05), scale = 0.8)
+  addscalebar(plotepsg = 32750, label.cex = 1.2, label.col = 10)
+  box(col=10)
+  with(data_temp, points(Easting, Northing, pch=3, cex=0.7, col="lemonchiffon"))
+  with(HiHi, points(Northing ~ Easting, pch = 22,
+                  col = 2, bg = 6, lwd = 2, cex = 1.8))
+  with(LoLo, points(Northing ~ Easting, pch = 21, 
+                  col = 3, bg = 7, lwd = 2, cex = 2))
+  with(HiLo, points(Northing ~ Easting, pch = 25,  
+                  col = 2, bg = 7, lwd = 2, cex = 1.8))
+  with(LoHi, points(Northing ~ Easting, pch = 24,
+                  col = 3, bg = 6, lwd = 2, cex = 1.8))
+  mtext(varz[i],3,-1.55,adj=0.985,font=2)
+  mtext(varz[i],3,-1.5,adj=0.98,font=2,col="white")
+  legend(494200, 6407030, bty = "n", cex = 1.2, ncol=1, inset = 0.01,
+       legend = c("Hi-Hi", "Lo-Lo","Hi-Lo","Lo-Hi","Samples"),
+       pch = c(22, 21, 25,24,3), pt.cex = c(1.8,2,1.8,1.8,0.7), 
+       pt.lwd = c(2,2,2,2,1),
+       col = c(2,3,2,3,"lemonchiffon"), pt.bg = c(6,7,7,6,NA), text.col = 10,
+       box.col = NA, box.lwd = 1.3, bg = "#00000080", 
+       title=expression(italic("Key")), x.intersp = 0.8, 
+       title.col = "white")
+
+}
+par(mfrow=c(1,1), mar=c(3,3,0.5,0.5), oma=c(0,0,0,0), mgp=c(1.6,0.2,0), 
+    tcl=0.3,lend="square", ljoin="mitre")
+
+```
+
+```{r reset-layout, echo=FALSE}
+layout(1)
+```
+
+```{r remove temps 2, message=FALSE, warning=FALSE, include=FALSE}
+rm(list = c("data_temp","Coords","mI","locMI", "plotdata", "pos0", "neg0",
+            "LISA","medC.pct","HiHi","LoLo","HiLo","LoHi","bw","i","local_moran",
+            "var0","varz"))
+```
+
+<hr>
+
+## Using the gstat package for geostatistics: variograms, kriging, and visualization
+
+### ├ Make `sf` & `SpatialPointsDataFrame` objects from a data frame
+
+In this example (as for Moran's I) we $log_{10}$-transform our variable as its
+distribution is highly positively skewed. (Using the untransformed variable
+would result in too many apparent upper outliers.)
+
+```{r make SpatialPointsDataFrame object, paged.print=FALSE, results='hold', echo=FALSE}
+data0 <- na.omit(rf18a[,c("Easting","Northing","C.pct")])
+data0[,3] <- log10(data0[,3])
+C.pct_sf <- st_as_sf(data0, coords=c("Easting","Northing"), crs = st_crs(32750))
+C.pct_sp <- as_Spatial(C.pct_sf)
+summary(C.pct_sp)
+```
+
+### ├ Plot the spatial object for checking
+
+To quickly check our data, we use the function `bubble()` from the
+`sp` package to make a *bubble map* of our variable, where the symbol *area* is
+proportional to the variable value (in this case, soil TOC concentration).
+
+```{r spplot-spdf, fig.height=5, fig.width=8, fig.align='center', out.width="80%", fig.cap="Visualization of spatial point data object for log10-transformed C.pct concentrations in Ridgefield soils 2019-2022.", message=FALSE, warning=FALSE, results='hold', echo=FALSE}
+bubble(C.pct_sp, col=c("#ff000088", "#0000ff88"), main = "", 
+       scales = list(draw = TRUE), xlab = "Easting", ylab = "Northing")
+```
+
+### ├ Plot a map with range-class symbols
+
+```{r TOC-tukey-plot, echo=2:19, fig.width=8, fig.height=7.05, fig.align='center', fig.cap="Map of C.pct concentrations expressed as symbols for concentration ranges (UQR is 75th percentile, upWsk is upper whisker, med is median, LQR is 25th percentile, loWsk is lower whisker). Data are from Ridgefield soils 2019-2022.", out.width="80%", message=FALSE, warning=FALSE,echo=FALSE}
+palette(c("black",rev(c("#EE0000C0", "#EE7621C0", "#EEC900C0", "#40E0D0C0", 
+                        "#4870F0C0", "#9932CCC0")),"grey60","grey92", "white"))
+par(oma=c(4,4,1.5,1.5), mgp=c(1.4,0.3,0), lend=2, ljoin=1, tcl=0.3)
+plot(rftiles)
+axis(1)
+mtext(side=1, line=2, text="Easting (UTM Zone 50, m)",
+      font=2, cex=1.2)
+axis(2, mgp=c(2, 0.5, 0))
+mtext(side=2, line=2, text="Northing (UTM Zone 50, m)",
+      font=2, cex=1.2)
+addnortharrow(pos="topright", border=1, lwd=1, text.col=1,  
+              padin=c(0.2,0.2), scale=0.8)
+addscalebar(plotepsg = 32750, htin = 0.16, label.cex = 1.2, pos = "bottomright")
+# construct and plot range classes in Tukey boxplot thresholds
+C.pct_sp@data$tukey <- cut(C.pct_sp@data$C.pct, 
+    breaks = c(0,boxplot.stats(C.pct_sp@data[,1])$stats,999999),
+    labels = c("-outliers","loWx-LQR","LQR-med","med-UQR","UQR-upWx","+outliers"))
+polygon(rf_boundary[,1:2], lty=3, lwd=2, border="khaki")
+points(C.pct_sp@coords, pch = 21, col = 10,
+       cex=(c(.5,.65,.85,1,1.4,1.8)*2)[C.pct_sp@data$tukey], 
+       bg=seq(2,7)[C.pct_sp@data$tukey])
+     
+legend(494500, 6407050, legend = rev(c("-outliers","loWsk to LQR","LQR to med",
+                                "med to UQR","UQR to upWsk","+outliers")), 
+       cex = 1., pch=21, pt.cex=rev(c(.5,.65,.85,1,1.4,1.8))*2, inset = 0.07, 
+       bty="n", y.intersp=1.15, pt.bg=seq(7,2,-1), x.intersp = .9,
+       text.col = 10, col = 10)
+text(399870, 6468410, 
+     labels=expression(bold("C.pct ranges")), pos = 4, cex = 1)
+box()
+```
+
+**Bins for boxplot-categorised-point map in Figure \@ref(fig:TOC-tukey-plot):**
+
+```{r tukey-map-bins, echo=FALSE}
+tukbins <- data.frame(bins=c("-outliers","loWsk to LQR","LQR to med",
+                                "med to UQR","UQR to upWsk","+outliers"),
+      from=signif(c(-4,boxplot.stats(C.pct_sp@data[,1])$stats),3),
+      to=signif(c(boxplot.stats(C.pct_sp@data[,1])$stats,Inf),3))
+knitr::kable(tukbins)
+```
+
+## Variograms and Kriging
+
+### ├ Make a binned simple variogram object
+
+```{r make variogram object, message=FALSE, warning=FALSE, echo=FALSE, fig.align='center', fig.cap="Plot of experimental binned variogram for C.pct in Ridgefield soils 2019-2022.", fig.height=3.5, fig.width=4.5, out.width="50%"}
+data0 <- na.omit(rf18a[,c("Easting","Northing","Gravel.pct")])
+data0 <- data0[-which(data0$Gravel.pct<1e-4),]
+data0[,3] <- log10(data0[,3])
+Gravel.pct_sf <- st_as_sf(data0, coords=c("Easting","Northing"), crs = st_crs(32750))
+Gravel.pct_sp <- as_Spatial(Gravel.pct_sf)
+
+par(mar = c(3,3,1,1), mgp = c(1.7,0.3,0), font.lab=2, tcl=0.3)
+
+variog_Gravel.pct <- variogram(Gravel.pct~1, Gravel.pct_sf, cressie = TRUE) # 
+plot(variog_Gravel.pct$dist, variog_Gravel.pct$gamma, xlab = "Distance (m)",
+     pch=19, col="blue2", 
+     ylab = expression(bold(paste("Semivariance (",gamma,")"))),
+     ylim = c(0,max(variog_Gravel.pct$gamma)))
+mtext(paste(attributes(variog_Gravel.pct)$what,"with",
+            length(variog_Gravel.pct$dist),"bins"), side=1, line=-1.5, adj=0.98)
+```
+
+```{r print-variog-obj, paged.print=FALSE, echo=FALSE}
+vgr <- variog_Gravel.pct; vgr[,2] <- round(vgr[,2],1); vgr[,3] <- round(vgr[,3],3)
+vgr[,1:3]; rm(vgr)
+```
+
+### ├ Fit a variogram model using weighted least squares
+
+```{r fit variogram model, fig.height=3, fig.width=4, message=FALSE, warning=FALSE, paged.print=FALSE, results='hold', echo=FALSE}
+vmodel_Gravel.pct <- fit.variogram(variog_Gravel.pct, 
+                              model = vgm(psill = NA, model = "Exp", 
+                                          nugget = 0.2, 
+                                          cutoff = max(variog_Gravel.pct$dist)))
+vmodel_Gravel.pct
+```
+
+```{r plot-exp-model-variograms, fig.height=3.6, fig.width=5, fig.align='center', fig.cap="Plot of experimental binned variogram, and exponential variogram model, for Gravel.pct in Ridgefield soils 2019-2022.", out.width="50%", results='hide', echo=FALSE}
+par(mar = c(4,4,1,1), mgp = c(1.7,0.3,0), tcl=0.25, font.lab=2)
+with(variog_Gravel.pct, plot(dist, gamma, ylim = c(0, max(gamma)), cex.lab=1.2, 
+                   lwd=2, xlab = "Distance (m)", 
+                   ylab = expression(bold(paste("Semivariance (",gamma,")")))))
+# plot model
+x0 <- variog_Gravel.pct$dist
+y0 <- vmodel_Gravel.pct$psill[1] + 
+  vmodel_Gravel.pct$psill[2]*(1 - exp(-1*x0/vmodel_Gravel.pct$range[2]))
+lines(x0,y0,col=2)
+legend("bottomright", bty = "n", cex=1, pch=c(1,NA), pt.lwd=2, lwd=c(NA,1), 
+       col=c(1,2), pt.cex=1.1,legend = c("Empirical variogram",
+                  paste(vmodel_Gravel.pct$model[2],"variogram model")))
+text(600,0.025,pos=2,offset=0, cex=0.75, family='mono', col = 2,
+     labels=paste(
+       " nugget =",signif(vmodel_Gravel.pct$psill[1],3),"\n",
+       "partial sill =", signif(vmodel_Gravel.pct$psill[2],3),"\n",
+       "range =", signif(vmodel_Gravel.pct$range[2],3),"m\n",
+       "practical range =",signif(vmodel_Gravel.pct$range[2]*3,3),"m" 
+  ))
+# NOTE factor (range -> practical range) depends on model
+```
+
+### ├ Perform kriging interpolation
+
+### ├ first make a grid mask
+
+```{r make grid masked to AFR sampling zones, message=FALSE, warning=FALSE, results='hold', echo=FALSE}
+grid0 <- expand.grid(seq(round(min(Gravel.pct_sp@coords[,1]),1), 
+                            round(max(Gravel.pct_sp@coords[,1]),1), 10),
+                        seq(round(min(Gravel.pct_sp@coords[,2]),1), 
+                            round(max(Gravel.pct_sp@coords[,2]),1), 10))
+afgrid <- SpatialPoints(grid0, proj4string = UTM50)
+
+irregpoly <- Polygon(rf_boundary[,c(1,2)], hole=F)
+irregPolys = Polygons(list(irregpoly),1)
+gridMask = SpatialPolygons(list(irregPolys), 
+                           proj4string = UTM50)
+inOrOut <- as.vector(over(afgrid, gridMask))
+afgrid <- afgrid[which(inOrOut>0)]
+cat("Prediction grid:\n"); summary(afgrid)
+```
+
+### ├ Krige to grid
+```{r krige-to-grid, results='hold', echo=FALSE}
+kriged_Gravel.pct <- krige(formula = Gravel.pct~1, locations = Gravel.pct_sp, 
+                      newdata = afgrid, model = vmodel_Gravel.pct)
+summary(kriged_Gravel.pct)
+cat("_____________________________________________________________________\n\n")
+idw_Gravel.pct <- idw(formula = Gravel.pct~1, locations = Gravel.pct_sp, 
+                      newdata = afgrid, idp = 2)
+idw_Gravel.pct@data$var1.var <- NULL
+summary(idw_Gravel.pct)
+```
+
+### ├ Simple plot of kriging output
+
+We can then us the spplot() function from sp to visualise the 
+kriging predictions and variance, but without a background map.
+
+```{r spplot-kriging-output, fig.width=8, fig.height=5.85, fig.align='center', echo=2, fig.cap="Plots of simple kriging predictions and variance for log-transformed Gravel.pct in Ridgefield soils 2019-2022.", out.width="75%", warning=FALSE, error=FALSE, results='hold', echo=FALSE}
+par(oma=c(0,0,0,0))
+spplot(kriged_Gravel.pct, colorkey=T, pch=15, # with kriging variances
+    names.attr = c("log10[Gravel.pct] kriging predictions",
+                   "log10[Gravel.pct] kriging variance"), 
+    scales = list(draw = TRUE), col.regions = viridis::mako(100),
+    xlab="Longitude", ylab="Latitude")
+```
+
+### ├ Plot a map with overlay of the kriging predictions
+
+```{r map-krig-mod-pred, fig.height=12.8, fig.width=7.8, fig.align='center', fig.cap="Map showing (a) predictions and (b) variance for kriging model of Gravel.pct in Ridgefield soils. Sample points are tiny dots.", message=FALSE, warning=FALSE, echo=FALSE}
+par(mfrow=c(2,1), oma=c(4,4,1.5,1.5), mgp=c(1.4,0.3,0), lend=2, ljoin=1, tcl=0.3)
+plot(rftiles)
+axis(1, mgp=c(2, 0.3, 0), labels=F)
+# mtext(side=1, line=1.5, text="Easting (UTM Zone 50, m)",
+#       font=2, cex=1.2)
+axis(2, mgp=c(2, 0.3, 0), cex.axis = 1)
+mtext(side=2, line=1.5, text="Northing (UTM Zone 50, m)",
+      font=2, cex=1.2)
+axtx <- c(1,2,3,5,10,20,30,50,100,200,300,500,1000)
+colgrad <- gsub("FF","98", viridis::mako(128)[round(seq(1, 128, l=6),0)])
+rect(494500, 6402250, 501000, 6403000, col="#FFFFFF80", border=NA)
+quilt.plot(afgrid@coords[,1], afgrid@coords[,2],kriged_Gravel.pct@data[,1],
+           add = T, horizontal=T, 
+           col = colorRampPalette(colgrad, alpha = TRUE)(64),
+           legend.lab = expression(bold("Kriging prediction of Gravel.pct (mg/kg)")), 
+           legend.mar = 6, legend.cex = 1, legend.line = 1.2, text.col=10,
+           axis.args = list(at=log10(axtx), labels=axtx, mgp=c(1.2,0.1,0)))
+addnortharrow(border=1, lwd=1, text.col=1, padin=c(0.1,0.1), scale = 0.9)
+addscalebar(plotepsg = 32750, pos = "topleft")
+points(rf18a[,c("Easting","Northing")], pch=16, cex=0.1, col = "gold")
+box() ; mtext("(a)",3,-1.5, cex=1.5,col=10)
+
+plot(rftiles)
+axis(1, mgp=c(2, 0.3, 0), cex.axis = 1)
+mtext(side=1, line=1.5, text="Easting (UTM Zone 50, m)",
+      font=2, cex=1.2)
+axis(2, mgp=c(2, 0.3, 0), cex.axis = 1)
+mtext(side=2, line=1.5, text="Northing (UTM Zone 50, m)",
+      font=2, cex=1.2)
+axtx <- seq(0,0.14,0.02)
+colgrad <- gsub("FF","80", viridis::turbo(128)[round(seq(1, 128, l=6),0)])
+rect(494500, 6402250, 501000, 6403000, col="#FFFFFF80", border=NA)
+quilt.plot(afgrid@coords[,1], afgrid@coords[,2],kriged_Gravel.pct@data[,2],
+           add = T, horizontal=T, 
+           col = colorRampPalette(colgrad, alpha = TRUE)(64),
+           legend.lab = expression(bold("Kriging variance in Gravel.pct (mg/kg)")), 
+           legend.mar = 6, legend.cex = 1, legend.line = 1.2, legend.col="white",
+           axis.args = list(at=axtx, labels=axtx, mgp=c(1.2,0.1,0)))
+addnortharrow(border=1, lwd=1, text.col=1, padin=c(0.1,0.1), scale = 0.9)
+addscalebar(plotepsg = 32750, pos = "topleft")
+points(rf18a[,c("Easting","Northing")], pch=16, cex=0.1, col="orchid")
+box() ; mtext("(b)",3,-1.5, cex=1.5,col=10)
+```
+
