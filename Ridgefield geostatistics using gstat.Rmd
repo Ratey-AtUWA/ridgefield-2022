@@ -11,7 +11,11 @@ output:
     smart: no
 ---
 
-```{r load packages and environment but do not show, message=FALSE, warning=FALSE, echo=FALSE, include=FALSE}
+[**Note**: not all the code is shown.]{style="background-color: #FFFF00;"}
+
+## use these packages / options
+
+```{r load packages and environment but do not show, message=FALSE, warning=FALSE}
 library(sp)
 library(lctools)
 library(gstat)
@@ -23,25 +27,24 @@ library(viridis)
 library(ncf)
 library(flextable)
   set_flextable_defaults(font.family = 'sans', theme_fun = "theme_zebra", 
-        font.size = 11, text.align = "right",padding.left = 1, padding.right = 1,
-        padding.top = 2, padding.bottom = 2)
+      font.size = 11, text.align = "right",padding.left = 1, padding.right = 1,
+      padding.top = 2, padding.bottom = 2)
 ```
 
-```{r message=FALSE, warning=FALSE, include=FALSE}
+## Read the data
+
+```{r message=FALSE, warning=FALSE}
 git <- "https://github.com/Ratey-AtUWA/ridgefield-2022/raw/main/"
 ```
 
-```{r importing the data, message=FALSE, warning=FALSE, results='hold', echo=FALSE}
+```{r importing the data, message=FALSE, warning=FALSE, results='hold'}
 rf18a <- read.csv(paste0(git,"rf2018A.csv"), stringsAsFactors = TRUE)
-rf18a$Year <- as.factor(rf18a$Year)
-rf_border <- read.csv(paste0(git,"rf_hull.csv"))
-rf18a <- droplevels(rf18a[-which(rf18a$Depth_upper_cm > 1 & 
-                                           rf18a$Type=="Soil"),])
+rf_boundary <- read.csv(paste0(git,"rf_boundary.csv"))
 ```
 
 # Making our base map of Ridgefield 
 
-```{r define CRS, warning=FALSE, error=FALSE, results='hold', echo=FALSE}
+```{r define CRS, warning=FALSE, error=FALSE, results='hold'}
 LongLat <- CRS("+proj=longlat +ellps=WGS84 
            +datum=WGS84 +no_defs") # uses Earth ellipsis specs from WGS84 datum
 UTM50 <- CRS("+proj=utm +zone=50 +south") # just for Zone 50, S hemisphere!
@@ -49,7 +52,7 @@ UTM50 <- CRS("+proj=utm +zone=50 +south") # just for Zone 50, S hemisphere!
 
 ### ├ Map extent object
 
-```{r make map extent object, warning=FALSE, error=FALSE, results='hold', echo=FALSE}
+```{r make map extent object, warning=FALSE, error=FALSE, results='hold'}
 extent <- st_as_sf(x = data.frame(x = c(116.94,117.01), 
                                   y = c(-32.515,-32.465)), 
                    coords = c("x", "y"), crs = LongLat)
@@ -60,7 +63,7 @@ st_coordinates(extent_UTM)
 
 ### ├ Getting and plotting the map tile data
 
-```{r basemap, fig.height=7.05, fig.width=8, fig.align='center', fig.cap="Map of Ridgefield Farm and adjacent area (UTM projection, Zone 50S, EPSG:32750) used subsequently as the base map for spatial analyses. Generated using the maptiles R package, with ESRI WorldTopoMap tiles.", out.width="75%", warning=FALSE, message=FALSE, results='hide', echo=FALSE}
+```{r basemap, fig.height=7.05, fig.width=8, fig.align='center', fig.cap="Map of Ridgefield Farm and adjacent area (UTM projection, Zone 50S, EPSG:32750) used subsequently as the base map for spatial analyses. Generated using the maptiles R package, with ESRI WorldTopoMap tiles.", out.width="75%", warning=FALSE, message=FALSE, results='hide'}
 rftiles <- get_tiles(extent_UTM, provider = "Esri.WorldImagery", 
                      crop = TRUE, zoom = 13) # make map object
 
@@ -87,7 +90,7 @@ box()
 
 ### ├ Calculate Global Moran's I
 
-```{r global Moran, echo=TRUE, message=FALSE, warning=FALSE, results='hold', echo=FALSE}
+```{r global Moran, echo=TRUE, message=FALSE, warning=FALSE, results='hold'}
 var0 <- "C.pct" # choose the variable of interest
 
 # Calculate global Moran's I
@@ -102,7 +105,7 @@ rm(list = c("data_temp","Coords","bw","mI","var0")) # remove temporary objects
 
 ### ├ Plot local Moran's I
 
-```{r local-Moran, message=FALSE, warning=FALSE, fig.height=7.15, fig.width=10, fig.align='center', out.width="80%", fig.cap="Map of Local Moran's I for TOC concentrations in Ridgefield soils. The Global Moran's I parameter is also shown beneath the legend.", results='hide', echo=FALSE}
+```{r local-Moran, message=FALSE, warning=FALSE, fig.height=7.15, fig.width=10, fig.align='center', out.width="80%", fig.cap="Map of Local Moran's I for TOC concentrations in Ridgefield soils. The Global Moran's I parameter is also shown beneath the legend.", results='hide'}
 palette("default");palette(c(palette(),"gray92","white","transparent"))
 var0 <- "C.pct" # choose the variable of interest
 data_temp <- na.omit(rf18a[,c("Easting", "Northing", var0)])
@@ -287,11 +290,11 @@ rm(list = c("data_temp","Coords","mI","locMI", "plotdata", "pos0", "neg0",
 
 ### ├ Make `sf` & `SpatialPointsDataFrame` objects from a data frame
 
-In this example (as for Moran's I) we $log_{10}$-transform our variable as its
+In this example (as for Moran's I) we $log_{10}$-transform our variable if its
 distribution is highly positively skewed. (Using the untransformed variable
 would result in too many apparent upper outliers.)
 
-```{r make SpatialPointsDataFrame object, paged.print=FALSE, results='hold', echo=FALSE}
+```{r make SpatialPointsDataFrame object, paged.print=FALSE, results='hold'}
 data0 <- na.omit(rf18a[,c("Easting","Northing","C.pct")])
 data0[,3] <- log10(data0[,3])
 C.pct_sf <- st_as_sf(data0, coords=c("Easting","Northing"), crs = st_crs(32750))
@@ -305,7 +308,7 @@ To quickly check our data, we use the function `bubble()` from the
 `sp` package to make a *bubble map* of our variable, where the symbol *area* is
 proportional to the variable value (in this case, soil TOC concentration).
 
-```{r spplot-spdf, fig.height=5, fig.width=8, fig.align='center', out.width="80%", fig.cap="Visualization of spatial point data object for log10-transformed C.pct concentrations in Ridgefield soils 2019-2022.", message=FALSE, warning=FALSE, results='hold', echo=FALSE}
+```{r spplot-spdf, fig.height=5, fig.width=8, fig.align='center', out.width="80%", fig.cap="Visualization of spatial point data object for log10-transformed C.pct concentrations in Ridgefield soils 2019-2022.", message=FALSE, warning=FALSE, results='hold'}
 bubble(C.pct_sp, col=c("#ff000088", "#0000ff88"), main = "", 
        scales = list(draw = TRUE), xlab = "Easting", ylab = "Northing")
 ```
@@ -359,9 +362,9 @@ knitr::kable(tukbins)
 
 ### ├ Make a binned simple variogram object
 
-```{r make variogram object, message=FALSE, warning=FALSE, echo=FALSE, fig.align='center', fig.cap="Plot of experimental binned variogram for C.pct in Ridgefield soils 2019-2022.", fig.height=3.5, fig.width=4.5, out.width="50%"}
+```{r make-variog-obj, message=FALSE, warning=FALSE, fig.align='center', fig.cap="Plot of experimental binned variogram for C.pct in Ridgefield soils 2019-2022.", fig.height=3.5, fig.width=4.5, out.width="50%"}
 data0 <- na.omit(rf18a[,c("Easting","Northing","Gravel.pct")])
-data0 <- data0[-which(data0$Gravel.pct<1e-4),]
+data0 <- data0[-which(data0$Gravel.pct<1e-4),] # find and remove zeros
 data0[,3] <- log10(data0[,3])
 Gravel.pct_sf <- st_as_sf(data0, coords=c("Easting","Northing"), crs = st_crs(32750))
 Gravel.pct_sp <- as_Spatial(Gravel.pct_sf)
@@ -377,14 +380,19 @@ mtext(paste(attributes(variog_Gravel.pct)$what,"with",
             length(variog_Gravel.pct$dist),"bins"), side=1, line=-1.5, adj=0.98)
 ```
 
+**Data for Figure \@ref(fig:make-variog-obj)**: `np` is number of points,
+`gamma` (&gamma;) is semivariance.
+
 ```{r print-variog-obj, paged.print=FALSE, echo=FALSE}
-vgr <- variog_Gravel.pct; vgr[,2] <- round(vgr[,2],1); vgr[,3] <- round(vgr[,3],3)
-vgr[,1:3]; rm(vgr)
+vgr <- variog_Gravel.pct
+vgr[,2] <- round(vgr[,2],1)
+vgr[,3] <- round(vgr[,3],3)
+flextable(vgr[,1:3]); rm(vgr)
 ```
 
 ### ├ Fit a variogram model using weighted least squares
 
-```{r fit variogram model, fig.height=3, fig.width=4, message=FALSE, warning=FALSE, paged.print=FALSE, results='hold', echo=FALSE}
+```{r fit variogram model, fig.height=3, fig.width=4, message=FALSE, warning=FALSE, paged.print=FALSE, results='hold'}
 vmodel_Gravel.pct <- fit.variogram(variog_Gravel.pct, 
                               model = vgm(psill = NA, model = "Exp", 
                                           nugget = 0.2, 
@@ -419,7 +427,7 @@ text(600,0.025,pos=2,offset=0, cex=0.75, family='mono', col = 2,
 
 ### ├ first make a grid mask
 
-```{r make grid masked to AFR sampling zones, message=FALSE, warning=FALSE, results='hold', echo=FALSE}
+```{r make grid masked to AFR sampling zones, message=FALSE, warning=FALSE, results='hold'}
 grid0 <- expand.grid(seq(round(min(Gravel.pct_sp@coords[,1]),1), 
                             round(max(Gravel.pct_sp@coords[,1]),1), 10),
                         seq(round(min(Gravel.pct_sp@coords[,2]),1), 
@@ -436,7 +444,7 @@ cat("Prediction grid:\n"); summary(afgrid)
 ```
 
 ### ├ Krige to grid
-```{r krige-to-grid, results='hold', echo=FALSE}
+```{r krige-to-grid, results='hold'}
 kriged_Gravel.pct <- krige(formula = Gravel.pct~1, locations = Gravel.pct_sp, 
                       newdata = afgrid, model = vmodel_Gravel.pct)
 summary(kriged_Gravel.pct)
@@ -452,7 +460,7 @@ summary(idw_Gravel.pct)
 We can then us the spplot() function from sp to visualise the 
 kriging predictions and variance, but without a background map.
 
-```{r spplot-kriging-output, fig.width=8, fig.height=5.85, fig.align='center', echo=2, fig.cap="Plots of simple kriging predictions and variance for log-transformed Gravel.pct in Ridgefield soils 2019-2022.", out.width="75%", warning=FALSE, error=FALSE, results='hold', echo=FALSE}
+```{r spplot-kriging-output, fig.width=8, fig.height=5.85, fig.align='center', echo=2, fig.cap="Plots of simple kriging predictions and variance for log-transformed Gravel.pct in Ridgefield soils 2019-2022.", out.width="75%", warning=FALSE, error=FALSE, results='hold'}
 par(oma=c(0,0,0,0))
 spplot(kriged_Gravel.pct, colorkey=T, pch=15, # with kriging variances
     names.attr = c("log10[Gravel.pct] kriging predictions",
@@ -461,9 +469,9 @@ spplot(kriged_Gravel.pct, colorkey=T, pch=15, # with kriging variances
     xlab="Longitude", ylab="Latitude")
 ```
 
-### ├ Plot a map with overlay of the kriging predictions
+### ├ Plot a map with overlay of the kriging predictions & kriging variance
 
-```{r map-krig-mod-pred, fig.height=12.8, fig.width=7.8, fig.align='center', fig.cap="Map showing (a) predictions and (b) variance for kriging model of Gravel.pct in Ridgefield soils. Sample points are tiny dots.", message=FALSE, warning=FALSE, echo=FALSE}
+```{r map-krig-mod-pred, fig.height=12.8, fig.width=7.8, fig.align='center', fig.cap="Map showing (a) predictions and (b) variance for kriging model of Gravel.pct in Ridgefield soils. Sample points are tiny dots.", message=FALSE, warning=FALSE}
 par(mfrow=c(2,1), oma=c(4,4,1.5,1.5), mgp=c(1.4,0.3,0), lend=2, ljoin=1, tcl=0.3)
 plot(rftiles)
 axis(1, mgp=c(2, 0.3, 0), labels=F)
