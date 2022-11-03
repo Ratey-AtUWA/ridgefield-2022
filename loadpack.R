@@ -1,0 +1,17 @@
+library(sp)
+library(lctools)
+library(gstat)
+library(sf)
+library(maptiles)
+library(prettymapr)
+library(fields)
+library(viridis)
+library(ncf)
+library(flextable)
+set_flextable_defaults(font.family = 'sans', theme_fun = "theme_zebra",
+                       font.size = 11, text.align = "right",padding.left = 1, padding.right = 1,
+                       padding.top = 2, padding.bottom = 2)
+library(car)
+library(PMCMRplus)
+library(Rmisc)
+library(RcmdrMisc)
