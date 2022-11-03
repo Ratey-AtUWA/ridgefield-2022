@@ -40,6 +40,11 @@ git <- "https://github.com/Ratey-AtUWA/ridgefield-2022/raw/main/"
 ```{r importing the data, message=FALSE, warning=FALSE, results='hold'}
 rf18a <- read.csv(paste0(git,"rf2018A.csv"), stringsAsFactors = TRUE)
 rf_boundary <- read.csv(paste0(git,"rf_boundary.csv"))
+farmtrack <- read.csv(paste0(git,"farmtrack.csv"))
+minor <- read.csv(paste0(git,"minorStrm.csv"))
+nimb <- read.csv(paste0(git,"NimbedillingBrk.csv"))
+rf_annot <- list(farmtrack = farmtrack, minor = minor, 
+                 nimb = nimb, rf_boundary = rf_boundary)
 ```
 
 # Making our base map of Ridgefield 
@@ -76,9 +81,8 @@ mtext(side=1, line=2, text="Easting (UTM Zone 50, m)",
 axis(2)
 mtext(side=2, line=2, text="Northing (UTM Zone 50, m)",
       font=2, cex=1.2)
+source(paste0(git,"rf_map_annot.R"))
 with(rf18a, points(Easting, Northing, pch = 3, cex = 0.75, col = "gold"))
-# with(rf_border, lines(Easting,Northing, lty = 3, col = "darkgreen"))
-polygon(rf_boundary,lty=c("12"),lwd=2,border="#FFFFFFC0")
 addnortharrow(pos="topright", border=1, lwd=1, text.col=10,  
               padin=c(0.1,0.2), scale=1.2)
 addscalebar(plotepsg = 32750, linecol = "white", label.col = "white",
