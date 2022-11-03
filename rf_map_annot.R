@@ -5,8 +5,10 @@ minor <- read.csv(paste0(git,"minorStrm.csv"))
 nimb <- read.csv(paste0(git,"NimbedillingBrk.csv"))
 rf_annot <- list(farmtrack = farmtrack, minor = minor,
                  nimb = nimb, rf_boundary = rf_boundary)
+
 prevpal <- palette()
 palette("default");palette(c(palette(),"gray92","white","transparent"))
+
 with(rf_annot$nimb,lines(Easting, Northing,
                          lty=1,lwd=2, col="skyblue3", ljoin="round"))
 text(500140, 6402800, labels="Nimbedilling Brook",
@@ -27,4 +29,5 @@ text(496665,6405830, labels="Walwalling Road", cex=0.9, font=3, col=9, srt=47)
 text(499560,6402650, labels="Page\nRoad", cex=0.9, font=3, col=9, srt=90)
 with(rf_annot$rf_boundary, polygon(Easting, Northing,
                             lty=c("12"), lwd=2, border="#FFFFFFB0"))
+
 palette(prevpal); rm(prevpal)
