@@ -47,7 +47,7 @@ rf_boundary <- read.csv(paste0(git,"rf_boundary.csv"))
 ```{r define CRS, warning=FALSE, error=FALSE, results='hold'}
 LongLat <- CRS("+proj=longlat +ellps=WGS84 
            +datum=WGS84 +no_defs") # uses Earth ellipsis specs from WGS84 datum
-UTM50 <- CRS("+proj=utm +zone=50 +south") # just for Zone 50, S hemisphere!
+UTM50S <- CRS("+proj=utm +zone=50 +south") # just for Zone 50, S hemisphere!
 ```
 
 ### ├ Map extent object
@@ -57,7 +57,7 @@ extent <- st_as_sf(x = data.frame(x = c(116.94,117.01),
                                   y = c(-32.515,-32.465)), 
                    coords = c("x", "y"), crs = LongLat)
 st_coordinates(extent)
-extent_UTM <- st_transform(extent, crs=UTM50)
+extent_UTM <- st_transform(extent, crs=UTM50S)
 st_coordinates(extent_UTM)
 ```
 
@@ -432,12 +432,12 @@ grid0 <- expand.grid(seq(round(min(Gravel.pct_sp@coords[,1]),1),
                             round(max(Gravel.pct_sp@coords[,1]),1), 10),
                         seq(round(min(Gravel.pct_sp@coords[,2]),1), 
                             round(max(Gravel.pct_sp@coords[,2]),1), 10))
-rfgrid <- SpatialPoints(grid0, proj4string = UTM50)
+rfgrid <- SpatialPoints(grid0, proj4string = UTM50S)
 
 irregpoly <- Polygon(rf_boundary[,c(1,2)], hole=F)
 irregPolys = Polygons(list(irregpoly),1)
 gridMask = SpatialPolygons(list(irregPolys), 
-                           proj4string = UTM50)
+                           proj4string = UTM50S)
 inOrOut <- as.vector(over(rfgrid, gridMask))
 rfgrid <- rfgrid[which(inOrOut>0)]
 cat("Prediction grid:\n"); summary(rfgrid)
