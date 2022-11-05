@@ -27,11 +27,8 @@ for (i in 1:length(profs)){
   with(rf18Res, plot(Depth.mean ~ C.pct, xlim=c(0,18), ylim=c(100,0),
        subset = rf18Res$Profile==profs[i], pch=19, col = "red3", cex = 1.4))
   mtext(paste("Profile",profs[i]), 3, -1.5, adj=0.99, col = "tan")
-  assign(paste0("loess",profs[i]), loess(C.pct ~ Depth.mean, data = rf18Res,
-                                         subset = rf18Res$Profile==profs[i]))
   lss0 <- loess(C.pct ~ Depth.mean, data = rf18Res,
                 subset = rf18Res$Profile==profs[i], span=1)
-  assign(paste0("smooth",profs[i]), predict(lss0, depfs))
   smth0 <- predict(lss0,depfs)
   lst0 <- c(`names<-`(list(smth0), paste0("smooth",profs[i])))
   loessModsRs <- list.append(loessModsRs,lst0)
@@ -59,11 +56,8 @@ for (i in 1:length(profs)){
     with(rf18Ero, plot(Depth.mean ~ C.pct, xlim=c(0,18), ylim=c(100,0),
                        subset = rf18Ero$Profile==profs[i], pch=19, col = "red3", cex = 1.4))
     mtext(paste("Profile",profs[i]), 3, -1.5, adj=0.99, col = "tan")
-    assign(paste0("loess",profs[i]), loess(C.pct ~ Depth.mean, data = rf18Ero,
-                                           subset = rf18Ero$Profile==profs[i]))
     lss0 <- loess(C.pct ~ Depth.mean, data = rf18Ero,
                   subset = rf18Ero$Profile==profs[i], span=1)
-    assign(paste0("smooth",profs[i]), predict(lss0, depfs))
     smth0 <- predict(lss0,depfs)
     lst0 <- c(`names<-`(list(smth0), paste0("smooth",profs[i])))
     loessModsEro <- list.append(loessModsEro,lst0)
@@ -91,11 +85,8 @@ for (i in 1:length(profs)){
     with(rf18Dep, plot(Depth.mean ~ C.pct, xlim=c(0,18), ylim=c(100,0),
                        subset = rf18Dep$Profile==profs[i], pch=19, col = "red3", cex = 1.4))
     mtext(paste("Profile",profs[i]), 3, -1.5, adj=0.99, col = "tan")
-    assign(paste0("loess",profs[i]), loess(C.pct ~ Depth.mean, data = rf18Dep,
-                                           subset = rf18Dep$Profile==profs[i]))
     lss0 <- loess(C.pct ~ Depth.mean, data = rf18Dep,
                   subset = rf18Dep$Profile==profs[i], span=1)
-    assign(paste0("smooth",profs[i]), predict(lss0, depfs))
     smth0 <- predict(lss0,depfs)
     lst0 <- c(`names<-`(list(smth0), paste0("smooth",profs[i])))
     loessModsDep <- list.append(loessModsDep,lst0)
