@@ -14,7 +14,7 @@ for(i in 1:NROW(lons0)) {
     #       use new api key for andrewwrate@gmail.com 20190123
     elev.TEMP <- as.data.frame(google_elevation(df_locations = pt0,
                                                 location_type="individual",              
-                                                key = "AIzaSyDFR_wFxzVM5Bgqtx2oisb-C1l-x121ek4",
+                                                key = GoogleElevKey,
                                                 simplify = TRUE))
     e1[((NROW(lats0)*(i-1))+j)] <- unlist(elev.TEMP[1], use.names=F)
     lat1[((NROW(lats0)*(i-1))+j)]<- unlist(elev.TEMP[2], use.names=F)[1]
