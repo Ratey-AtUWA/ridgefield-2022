@@ -72,7 +72,7 @@ st_coordinates(extent_UTM)
 
 ```{r basemap, fig.height=7.05, fig.width=8, fig.align='center', fig.cap="Map of Ridgefield Farm and adjacent area (UTM projection, Zone 50S, EPSG:32750) used subsequently as the base map for spatial analyses. Generated using the maptiles R package, with ESRI WorldTopoMap tiles.", out.width="75%", warning=FALSE, message=FALSE, results='hide'}
 rftiles <- get_tiles(extent_UTM, provider = "Esri.WorldImagery", 
-                     crop = TRUE, zoom = 13) # make map object
+                     crop = TRUE, zoom = 14) # make map object
 
 par(oma=c(3,3,1,1), mar=c(4,4,1.5,1.5), mgp=c(1.4,0.3,0), 
     lend=2, ljoin=1, tcl=0.3)
