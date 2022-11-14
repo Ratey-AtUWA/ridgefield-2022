@@ -12,4 +12,6 @@ ridgefield-2022.Rproj
 
 *.tmp
 
+*.zip
+
 /Ridgefield-geostatistics-using-gstat_files/*
