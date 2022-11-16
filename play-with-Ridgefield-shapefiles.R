@@ -59,6 +59,9 @@ ggmap(rf_gg)+
   coord_sf(crs=st_crs(4326))
 
 ggplot() +
-  geom_sf(data = rf_veg, aes(fill=MAPPING_UN)) +
   geom_sf(data = rf_hydrology, aes(col=SUB_TYPE)) +
+  scale_color_viridis_d() +
+  geom_path(mapping = aes(x=Longitude,y=Latitude),
+            data = rf_boundary,col="white") +
+  +
   theme_bw()
