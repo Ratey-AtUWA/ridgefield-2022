@@ -27,7 +27,7 @@ LF_Dep01 <- kmlconvert("./kml_files/Dep_01.kml")
 LF_Dep02 <- kmlconvert("./kml_files/Dep_02.kml")
 LF_Dep03 <- kmlconvert("./kml_files/Dep_03.kml")
 
-LF_Ero01 <- kmlconvert("./kml_files/Ero_01_new.kml")
+LF_Ero01 <- kmlconvert("./kml_files/Ero_01.kml")
 LF_Ero02 <- kmlconvert("./kml_files/Ero_02.kml")
 LF_Ero03 <- kmlconvert("./kml_files/Ero_03.kml")
 LF_Ero04 <- kmlconvert("./kml_files/Ero_04.kml")
@@ -74,9 +74,9 @@ LF_Dep01_sf <- st_snap(LF_Dep01_sf, LF_Ero01_sf, tolerance = 10)
 LF_Dep02_sf <- st_snap(LF_Dep02_sf, LF_Ero01_sf, tolerance = 10)
 LF_Dep03_sf <- st_snap(LF_Dep03_sf, LF_Ero01_sf, tolerance = 10)
 LF_Res01_sf <- st_snap(LF_Res01_sf, LF_Ero01_sf, tolerance = 20)
-# LF_Res02_sf <- st_snap(LF_Res02_sf, LF_Ero01_sf, tolerance = 10) hole
+# LF_Res02_sf <- st_snap(LF_Res02_sf, LF_Ero01_sf, tolerance = 10) hole; no snap
 LF_Res03_sf <- st_snap(LF_Res03_sf, LF_Ero01_sf, tolerance = 40)
-# LF_Res04_sf <- st_snap(LF_Res04_sf, LF_Ero01_sf, tolerance = 10) hole
+# LF_Res04_sf <- st_snap(LF_Res04_sf, LF_Ero01_sf, tolerance = 10) hole; no snap
 LF_Res05_sf <- st_snap(LF_Res05_sf, LF_Ero01_sf, tolerance = 10)
 LF_Ero02_sf <- st_snap(LF_Ero02_sf, LF_Dep02_sf, tolerance = 10)
 LF_Ero03_sf <- st_snap(LF_Ero03_sf, LF_Dep03_sf, tolerance = 10)
@@ -86,21 +86,21 @@ LF_Ero06_sf <- st_snap(LF_Ero06_sf, LF_Dep03_sf, tolerance = 10)
 
 par(oma=c(4,4,1,1),mar=c(0,0,0,0))
 plot(LF_Ero01_sf, xlim = c(495000,501000), ylim = c(6403000,6408000),
-     lwd = 2, border = 7, col="moccasin")
+     lwd = 1, border = 7, col="moccasin")
 axis(1);axis(2)
-plot(LF_Dep01_sf, add=T, border=4, lwd = 2, col = "lightblue1")
-plot(LF_Dep02_sf, add=T, border=4, lwd = 2, col = "lightblue1")
-plot(LF_Dep03_sf, add=T, border=4, lwd = 2, col = "lightblue1")
-plot(LF_Ero02_sf, add=T, border=7, lwd = 2, col = "moccasin")
-plot(LF_Ero03_sf, add=T, border=7, lwd = 2, col = "moccasin")
-plot(LF_Ero04_sf, add=T, border=7, lwd = 2, col = "moccasin")
-plot(LF_Ero05_sf, add=T, border=7, lwd = 2, col = "moccasin")
-plot(LF_Ero06_sf, add=T, border=7, lwd = 2, col = "moccasin")
-plot(LF_Res01_sf, add=T, border=3, lwd = 2, col = "honeydew")
-plot(LF_Res02_sf, add=T, border=3, lwd = 2, col = "honeydew")
-plot(LF_Res03_sf, add=T, border=3, lwd = 2, col = "honeydew")
-plot(LF_Res04_sf, add=T, border=3, lwd = 2, col = "honeydew")
-plot(LF_Res05_sf, add=T, border=3, lwd = 2, col = "honeydew")
+plot(LF_Dep01_sf, add=T, border=4, lwd = 1, col = "lightblue1")
+plot(LF_Dep02_sf, add=T, border=4, lwd = 1, col = "lightblue1")
+plot(LF_Dep03_sf, add=T, border=4, lwd = 1, col = "lightblue1")
+plot(LF_Ero02_sf, add=T, border=7, lwd = 1, col = "moccasin")
+plot(LF_Ero03_sf, add=T, border=7, lwd = 1, col = "moccasin")
+plot(LF_Ero04_sf, add=T, border=7, lwd = 1, col = "moccasin")
+plot(LF_Ero05_sf, add=T, border=7, lwd = 1, col = "moccasin")
+plot(LF_Ero06_sf, add=T, border=7, lwd = 1, col = "moccasin")
+plot(LF_Res01_sf, add=T, border=3, lwd = 1, col = "honeydew")
+plot(LF_Res02_sf, add=T, border=3, lwd = 1, col = "honeydew")
+plot(LF_Res03_sf, add=T, border=3, lwd = 1, col = "honeydew")
+plot(LF_Res04_sf, add=T, border=3, lwd = 1, col = "honeydew")
+plot(LF_Res05_sf, add=T, border=3, lwd = 1, col = "honeydew")
 
 # export the tidied-up data ####
 # make multipolygon sf object
@@ -109,6 +109,11 @@ RF_LF3_sf <- st_multipolygon(list(LF_Dep01_sf,LF_Dep02_sf,LF_Dep03_sf,
                                   LF_Ero04_sf,LF_Ero05_sf,LF_Ero06_sf,
                                   LF_Res01_sf,LF_Res02_sf,LF_Res03_sf,
                                   LF_Res04_sf,LF_Res05_sf))
+RF_Dep_sf <- st_multipolygon(list(LF_Dep01_sf,LF_Dep02_sf,LF_Dep03_sf))
+RF_Ero_sf <- st_multipolygon(list(LF_Ero01_sf,LF_Ero02_sf,LF_Ero03_sf,
+                                  LF_Ero04_sf,LF_Ero05_sf,LF_Ero06_sf))
+RF_Res_sf <- st_multipolygon(list(LF_Res01_sf,LF_Res02_sf,LF_Res03_sf,
+                                  LF_Res04_sf,LF_Res05_sf))
 # convert sf to sfc and add CRS
 RF_LF3_sfc <- st_sfc(RF_LF3_sf)
 st_crs(RF_LF3_sfc) <- UTM50S
@@ -116,3 +121,7 @@ st_crs(RF_LF3_sfc) <- UTM50S
 Ridgefield_3LF <- st_transform(RF_LF3_sfc, crs = st_crs(28350))
 # write to GIS shapefile!
 st_write(Ridgefield_3LF,"Ridgefield_3LF.shp")
+
+# fun facts ###
+st_area(Ridgefield_3LF)
+## 14895084 [m^2]
