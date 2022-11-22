@@ -168,6 +168,16 @@ png(filename = "RF_aspect_flow.png",width=1920, height=800)
 ggarrange(RF_aspectGG, RF_flowGG, ncol=2)
 dev.off()
 
+# Writing data back to geoTIFF ####
+writeRaster(RF_slope, filename="Ridgefield_Slope_EPSG28350.tif", format="GTiff")
+writeRaster(RF_aspect, filename="Ridgefield_Aspect_EPSG28350.tif", format="GTiff")
+writeRaster(RF_flowdir, filename="Ridgefield_flowdir_EPSG28350.tif", format="GTiff")
+
+GDALinfo("Ridgefield_Slope_EPSG28350.tif") # just file info
+GDALinfo("Ridgefield_Aspect_EPSG28350.tif") # just file info
+GDALinfo("Ridgefield_flowdir_EPSG28350.tif") # just file info
+
+
 # _._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._.
 # not sure if this works!
 # trying on the basis that slope curvature ~ second derivative of elevation???
