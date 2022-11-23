@@ -1,5 +1,5 @@
 ---
-title: "Ridgefield to 2018 A horizon spatial analyses"
+title: "Calculate landscape parameters from Ridgefield geoTIFF DEM"
 output: 
   bookdown::html_document2:
     fig_width: 6.4
@@ -65,7 +65,7 @@ This section based on code at <https://datacarpentry.org/r-raster-vector-geospat
 
 Read Ridgefield geoTIFF into R rasterLayer
 
-```{r}
+```{r eval=-1}
 GDALinfo("Ridgefield_DEM_gda94_utm50_epsg28350.tif") # just file info
 RF_elev <- raster("Ridgefield_DEM_gda94_utm50_epsg28350.tif")
   # also make a raster subset with no NA
@@ -76,6 +76,7 @@ RF_elev <- raster("Ridgefield_DEM_gda94_utm50_epsg28350.tif")
 ```
 
 # plot the data frame made from elevation raster
+```{r fig.height=9, fig.width=10.5, message=FALSE, warning=FALSE}
 elevMapGG <- ggplot() +
   geom_raster(data = RF_elevDF , aes(x = x, y = y, fill = elev)) +
   geom_sf(data = rf_hydrology, col="steelblue2") + # add the streams
@@ -92,6 +93,7 @@ elevMapGG <- ggplot() +
         legend.title = element_text(size=14, face="bold"),
         legend.text = element_text(size=14))
 elevMapGG
+```
 
 For the `terrain()` function see <https://arc2r.github.io/book/Surface.html>
 
