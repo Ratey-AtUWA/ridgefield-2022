@@ -22,6 +22,8 @@ ridgefield-2022.Rproj
 
 *.pdn
 
+*.geojson
+
 /Ridgefield-geostatistics-using-gstat_files/*
 
 /kml_files/*
