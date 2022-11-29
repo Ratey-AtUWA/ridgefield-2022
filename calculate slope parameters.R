@@ -19,6 +19,7 @@ test_slope <- terrain(testRast, opt = "slope", unit = "degrees")
 # https://datacarpentry.org/r-raster-vector-geospatial/01-raster-structure/
 
 # first load packages and some other setup stuff
+library(sf)
 library(raster) # slope parameters from raster::terrain() function
 library(rgdal)
 library(ggplot2)
