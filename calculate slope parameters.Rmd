@@ -69,7 +69,7 @@ Read Ridgefield geoTIFF into R rasterLayer
 GDALinfo("Ridgefield_DEM_gda94_utm50_epsg28350.tif") # just file info
 RF_elev <- raster("Ridgefield_DEM_gda94_utm50_epsg28350.tif")
   # also make a raster subset with no NA
-  NWrect <- extent(498000,500500,6405700,6407000)
+  NWrect <- extent(498000,500000,6405700,6407000)
   NW_elev <- raster::crop(RF_elev,NWrect)
   RF_elevDF <- as.data.frame(RF_elev, xy=TRUE)
   colnames(RF_elevDF)[3] <- "elev"
@@ -263,7 +263,7 @@ GDALinfo("Ridgefield_flowdir_EPSG28350.tif") # just file info
 
 --------------------------------------------------
 
-not sure if this works! \\
+not sure if this works! \
 trying on the basis that slope curvature ~ second derivative of elevation???
 
 ```

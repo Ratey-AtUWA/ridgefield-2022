@@ -84,15 +84,16 @@ axis(2)
 mtext(side=2, line=2, text="Northing (UTM Zone 50, m)",
       font=2, cex=1.2)
 source(paste0(git,"rf_map_annot.R"))
-with(rf22a, points(Easting, Northing, pch = 19, cex = 0.9, col = "cyan"))
-with(rf18a, points(Easting, Northing, pch = 19, cex = 0.9, col = "cyan4"))
+with(rf22a, points(Easting, Northing, pch = 21, cex = 0.9, 
+                   bg = "cyan", col="white"))
+with(rf18a, points(Easting, Northing, pch = 21, cex = 0.9, bg = "wheat"))
 addnortharrow(pos="topright", border=1, lwd=1, text.col="white",  
               padin=c(0.1,0.2), scale=1.2)
 addscalebar(plotepsg = 32750, linecol = "black", label.col = "white",
             widthhint = 0.3, htin = 0.15, label.cex = 1.3)
-legend("left", bty="o", bg = 1, inset = 0.01, 
-       legend = c("Previous data","New up to 2022"),
-       pch = 19, col = c("cyan4","cyan"), text.col = "white")
+legend("left", bty="o", bg = "grey33", inset = 0.01, 
+       legend = c("Previous data","New up to 2022"), col=c("black","white"),
+       pch = 21, pt.bg = c("wheat","cyan"), text.col = "white")
 box()
 ```
 
@@ -154,7 +155,7 @@ legend("top", bty = "o", cex = 1.5, title.cex = 1.5,
                       " in rf22a data \n(p \u2264 0.05 only)"),
        pch = c(21, 22,NA,NA,NA), pt.cex = c(3, 2.5,NA,NA,NA,NA),
        col = c("cyan", "plum2"), pt.bg = c("#00808080", "#C0404080"),
-       text.col = "white", title.col = "pink", y.intersp = 0.9, bg="#384838")
+       text.col = "white", title.col = "pink", y.intersp = 0.9, bg="#394739")
 text(0.5, 0.815, col = 10, cex = 1.2, 
      labels = paste("Global Moran's I:\n", signif(as.numeric(mI[2]),3),
                            "\nRandomization p:\n", signif(as.numeric(mI[7]),3)))
