@@ -84,16 +84,16 @@ axis(2)
 mtext(side=2, line=2, text="Northing (UTM Zone 50, m)",
       font=2, cex=1.2)
 source(paste0(git,"rf_map_annot.R"))
-with(rf22a, points(Easting, Northing, pch = 21, cex = 0.9, 
-                   bg = "cyan", col="white"))
-with(rf18a, points(Easting, Northing, pch = 21, cex = 0.9, bg = "wheat"))
+with(rf22a, points(Easting, Northing, pch = 21, cex = 1, 
+                   bg = "cornsilk"))
+with(rf18a, points(Easting, Northing, pch = 21, cex = 1, bg = "chocolate"))
 addnortharrow(pos="topright", border=1, lwd=1, text.col="white",  
               padin=c(0.1,0.2), scale=1.2)
 addscalebar(plotepsg = 32750, linecol = "black", label.col = "white",
             widthhint = 0.3, htin = 0.15, label.cex = 1.3)
 legend("left", bty="o", bg = "grey33", inset = 0.01, 
-       legend = c("Previous data","New up to 2022"), col=c("black","white"),
-       pch = 21, pt.bg = c("wheat","cyan"), text.col = "white")
+       legend = c("Previous data","New up to 2022"), 
+       pch = 21, pt.bg = c("chocolate","cornsilk"), text.col = "white")
 box()
 ```
 
