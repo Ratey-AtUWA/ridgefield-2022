@@ -1,0 +1,317 @@
+---
+title: "Calculate landscape parameters from Ridgefield geoTIFF DEM"
+output: 
+  bookdown::html_document2:
+    fig_width: 6.4
+    fig_height: 4.8
+    number_sections: no
+    self_contained: no
+    df_print: default
+    fig_caption: yes
+    smart: no
+---
+
+```{r include=FALSE}
+load(".RData")
+```
+
+[**Note**: not all the code is shown.]{style="background-color: #FFFF00;"}
+
+First load packages and some other setup stuff
+
+```{r message=FALSE, warning=FALSE, results='hold'}
+library(sf)
+library(gstat) # to interpolate contours to regular grid
+library(raster) # slope parameters from raster::terrain() function
+library(rgdal)
+library(ggplot2)
+library(ggpubr)
+library(viridis)
+library(fgeo.analyze)
+GDA94u <- st_crs(28350)
+GDA94l <- st_crs(4283)
+```
+
+Make data frame from sfc object created from contour shapefile
+
+```{r}
+RF_elevDF2m <- cbind(st_coordinates(contours_28350$geometry[1])[,1:2],
+                     rep(contours_28350$elevation_[1],
+                         NROW(st_coordinates(contours_28350$geometry[1])))) |> 
+  as.data.frame()
+colnames(RF_elevDF2m)[3] <- "elev_i"
+for(i in 2:length(contours_28350$geometry)){
+  coords_i <- st_coordinates(contours_28350$geometry[i])[,1:2]
+  npts_i <- NROW(st_coordinates(contours_28350$geometry[i]))
+  elev_i <- rep(contours_28350$elevation_[i],npts_i)
+  obj_i <- cbind(coords_i, elev_i) |> as.data.frame()
+  RF_elevDF2m <- rbind(RF_elevDF2m,obj_i)
+  }
+colnames(RF_elevDF2m)[3] <- "elev"
+str(RF_elevDF2m)
+```
+
+```{r make grid prior to interp for geotiff}
+(elevgrid <- st_make_grid(contours_28350, cellsize=c(10,10), what = "centers"))
+```
+
+```{r make sf POINTS object from dataframe and check with plot, fig.height=6, fig.width=6}
+RF_elev_sf_2m <- st_as_sf(RF_elevDF2m, coords=c("X","Y"), crs = GDA94u)
+# RF_elev_SP_2m <- as_Spatial(RF_elev_sf_2m)
+RF_elev_sf_2m |> plot(pch=15, cex=0.5)
+```
+
+```{r inverse distance interpolation, fig.height=12, fig.width=12}
+RF_ElevGrid <- st_intersection(elevgrid, outline1)
+idw_RF_elev <- idw(formula = elev~1, locations = RF_elev_sf_2m, 
+                      newdata = RF_ElevGrid, idp = 1.4)
+idw_RF_elev$var1.var <- NULL
+# idw_RF_elev
+plot(idw_RF_elev, breaks=seq(290,380,1), pal=viridis(90))
+```
+
+```{r plot-idw-raster, fig.height=7, fig.width=7}
+plot(idw_RF_elev, breaks=seq(290,380,2))
+```
+
+# plot the data frame made from elevation raster
+```{r fig.height=9, fig.width=10.5, message=FALSE, warning=FALSE}
+elevMapGG <- ggplot() +
+  geom_raster(data = RF_elevDF2m , aes(x = x, y = y, fill = elev)) +
+  geom_sf(data = rf_hydrology, col="steelblue2") + # add the streams
+  scale_fill_viridis_c(na.value = "#FFFFFF00", name="Elevation (m)") +
+  labs(x = "Longitude", y="Latitude") +
+  coord_sf(crs = st_crs(28350)) +
+  annotate(geom="text", x=495000, y=6407500,
+           label=paste0("Elevations based on DEM with 13m cells",
+                        "\nProjection: Long-Lat using GDA94"),
+           size=6, hjust = 0) +
+  theme_bw() +
+  theme(axis.title = element_text(size=16, face="bold"),
+        axis.text = element_text(size=14),
+        legend.title = element_text(size=14, face="bold"),
+        legend.text = element_text(size=14))
+elevMapGG
+```
+
+For the `terrain()` function see <https://arc2r.github.io/book/Surface.html>
+
+## Working with slope
+
+Extract slope from elevation data
+
+```{r}
+RF_slope <- terrain(RF_elev, opt = "slope", unit = "degrees", neighbors=4)
+RF_slope@crs@projargs ; bbox(RF_slope) ; summary(RF_slope)
+```
+
+Make a data frame version of slope
+
+```{r}
+RF_slopeDF <- as.data.frame(RF_slope_MGA, xy=TRUE)
+summary(RF_slopeDF)
+```
+
+Plot the raw slope data
+
+```{r fig.height=6, fig.width=7, message=FALSE, warning=FALSE}
+ggplot() +
+  geom_raster(data = RF_slopeDF , aes(x = x, y = y, fill = slope)) +
+  scale_fill_viridis_c(na.value = "#00000000") +
+  labs(x = "Easting", y="Northing") +
+  coord_fixed() +
+  theme_bw()
+```
+
+Categorise the slopes into range classes and summarise \\
+(nice breaks between classes found by trial and error!)
+
+```{r}
+RF_slopeDF$SlopeCat <- cut(RF_slopeDF$slope,
+                       breaks = c(0,1,2,3,4,6,10,15,20,25,99),
+                       labels=c("0-1","1-2","2-3","3-4", "4-6","6-10","12-15",
+                                "15-20","20-25",">25"))
+# summarise the slope categories
+cat("Percentage of pixels in each slope category:")
+(pctslopes <-
+  round(100*table(RF_slopeDF$SlopeCat)/sum(table(RF_slopeDF$SlopeCat)),2))
+```
+
+# plot the categorised slope map
+```{r fig.height=9, fig.width=10.5, message=FALSE, warning=FALSE}
+slopeCatMapGG <- ggplot() +
+  geom_raster(data = RF_slopeDF , aes(x = x, y = y, fill = SlopeCat)) +
+  geom_sf(data = rf_hydrology, col="steelblue2") + # add streams
+  scale_fill_viridis_d(na.value = "#FFFFFF00", name="Slope range (\u00B0)") +
+  labs(x = "Longitude", y="Latitude") +
+  coord_sf(crs=st_crs(28350)) +
+  annotate(geom="text", x=495000, y=6407500,
+          label=paste0("Slope categories based on DEM with 13m cells",
+                        "\nProjection: Long-Lat using GDA94"),
+           size=6, hjust = 0) +
+  theme_bw() +
+  theme(axis.title = element_text(size=16, face="bold"),
+        axis.text = element_text(size=14),
+        legend.title = element_text(size=14, face="bold"),
+        legend.text = element_text(size=14))
+slopeCatMapGG
+```
+
+---------------------------------------------
+
+## Working with aspect
+
+Extract aspect from elevation data
+
+```{r}
+RF_aspect <- terrain(RF_elev, opt = "aspect", unit = "degrees")
+```
+
+Make data frame version of aspect data
+
+```{r}
+RF_aspectDF <- as.data.frame(RF_aspect, xy=TRUE)
+```
+
+Map aspect with ggplot
+
+```{r fig.height=9, fig.width=10.5, message=FALSE, warning=FALSE}
+RF_aspectGG <- ggplot() +
+  geom_raster(data = RF_aspectDF, aes(x = x, y = y, fill = aspect)) +
+  # make interpretable colour gradient
+  scale_fill_gradientn(na.value = "#00000000",
+                       colors = c("cornsilk","gold","royalblue2","blue4",
+                                  "blue4","royalblue2","gold","cornsilk"),
+                       name="Aspect\ndirection (\u00B0)") +
+  geom_sf(data = rf_hydrology, col="coral", size=0.8) +
+  labs(x = "Longitude", y="Latitude") +
+  annotate(geom="text", x=495000, y=6407500,
+           label=paste0("Slope aspect directions based on DEM with 13m cells",
+                        "\n(yellow shades ~ North, blue shades ~ South)",
+                        "\nProjection: Long-Lat using GDA94"),
+           size=6, hjust = 0) +
+  coord_sf(crs=st_crs(28350)) +
+  theme_bw() +
+  theme(axis.title = element_text(size=16, face="bold"),
+        axis.text = element_text(size=14),
+        legend.title = element_text(size=14, face="bold"),
+        legend.text = element_text(size=14))
+RF_aspectGG
+```
+
+------------------------------------------------------------
+
+## Terrain water flow direction
+
+Extract flow direction from elevation data
+
+```{r}
+RF_flowdir <- terrain(RF_elev, opt = "flowdir")
+```
+
+Make data frame version of flow directions
+
+```{r}
+RF_flowdirDF <- as.data.frame(RF_flowdir, xy=TRUE)
+```
+
+Flow direction map with ggplot
+
+```{r fig.height=9, fig.width=10.5, message=FALSE, warning=FALSE}
+RF_flowdirDF$flowQ <- cut(RF_flowdirDF$flowdir, breaks=c(0,2^seq(0,7)+0.5),
+                          labels=c("E","SE","S","SW","W","NW","N","NE"))
+RF_flowGG <- ggplot() +
+  geom_raster(data = RF_flowdirDF, aes(x = x, y = y, fill = flowQ)) +
+  scale_fill_viridis_d(na.value = "#00000000",
+                       option = "rocket",
+                       name="Flow\ndirection") +
+  geom_sf(data = rf_hydrology, col="coral", size=0.8) +
+  labs(x = "Longitude", y="Latitude") +
+  annotate(geom="text", x=495000, y=6407500,
+           label=paste0("Water flow direction classes based on DEM with 13m cells",
+                        "\nProjection: Long-Lat using GDA94"),
+           size=6, hjust = 0) +
+  coord_sf(crs=st_crs(28350)) +
+  theme_bw() +
+  theme(axis.title = element_text(size=16, face="bold"),
+        axis.text = element_text(size=14),
+        legend.title = element_text(size=14, face="bold"),
+        legend.text = element_text(size=14))
+RF_flowGG
+```
+
+--------------------------------------------------
+
+## Writing data back to geoTIFF
+
+Write the `.tif` files
+
+```{r eval=FALSE}
+writeRaster(RF_slope, filename="Ridgefield_Slope_EPSG28350.tif", format="GTiff")
+writeRaster(RF_aspect, filename="Ridgefield_Aspect_EPSG28350.tif", format="GTiff")
+writeRaster(RF_flowdir, filename="Ridgefield_flowdir_EPSG28350.tif", format="GTiff")
+```
+
+Check files with `rgdal::GDALinfo()`
+
+```{r}
+GDALinfo("Ridgefield_Slope_EPSG28350.tif") # just file info
+GDALinfo("Ridgefield_Aspect_EPSG28350.tif") # just file info
+GDALinfo("Ridgefield_flowdir_EPSG28350.tif") # just file info
+```
+
+--------------------------------------------------
+
+not sure if this works! \
+trying on the basis that slope curvature ~ second derivative of elevation???
+
+```
+RF_curvature <- terrain(RF_slope, opt = "slope", unit="degrees")
+plot(RF_curvature, col=cividis(128))
+```
+
+## Try `fgeo.analyze::` R package for curvature
+
+Try the test data first (made near top of this file)
+```{r fig.height=7, fig.width=6, eval=-1}
+elevTopoTib <- fgeo_topography(elevDF,gridsize=4,xdim=40,ydim=40, edgecorrect = F)
+elevTopo <- as.data.frame(elevTopoTib)
+image(seq(1,40), seq(1,40), as.matrix(testElev[,2:41]),xlab="x",ylab="y")
+contour(seq(0,36,4), seq(0,36,4), matrix(elevTopo$convex,ncol=10),add=T,
+        labcex=2)
+# -=-=-=- OR -=-=-=-
+image(seq(0,36,4), seq(0,36,4), matrix(elevTopo$convex,ncol=10),
+      xlim=c(0,40), ylim=c(0,40))
+elevTopo$curv <- cut(elevTopo$convex, breaks=c(-999999,0,999999),
+                     labels=c("convex","concave"))
+ggplot() +
+  geom_raster(data = elevTopo, aes(x = gx, y = gy, fill = curv)) +
+  scale_fill_manual(values = c("steelblue","wheat"),na.value = "#FFFFFF00") +
+  coord_equal() +
+  theme_bw()
+
+test_slopeDF <- as.data.frame(test_slope, xy=T)
+```
+
+--------------------------------------------------
+
+```
+fgeo_topography() function still not working on Ridgefield data :( ####
+even when using a raster subset with no NA values
+NW_elevDF <- as.data.frame(NW_elev, xy=TRUE)
+names(NW_elevDF)[3] <- "elev"
+summary(NW_elevDF)
+```
+
+> NW_topo_pars <- fgeo_topography(NW_elevDF, gridsize=20, xdim=425, ydim = 360)
+
+`Error: cannot allocate vector of size 59.7 Gb`
+
+> NW_topo_pars <- fgeo_topography(NW_elevDF, gridsize=40, xdim=425, ydim = 360)
+
+`Error in if (theta1 <= theta2) { : missing value where TRUE/FALSE needed`
+
+> NW_topo_pars <- fgeo_topography(NW_elevDF, gridsize=40, xdim=425, ydim = 360,
+                                edgecorrect = F)
+                                
+`Error in if (theta1 <= theta2) { : missing value where TRUE/FALSE needed`
